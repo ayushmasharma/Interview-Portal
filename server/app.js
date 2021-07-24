@@ -39,4 +39,26 @@ app.post('/insertInterview', (request, response) => {
     .catch(err => console.log(err));
 });
 
+// Delete a scheduled interview
+app.delete('/deleteInterview/:id', (request, response) => {
+    const { id } = request.params;
+    const db = dbService.getDbServiceInstance();
+    const result = db.deleteInterviewById(id);
+    
+    result
+    .then(data => response.json({success : data}))
+    .catch(err => console.log(err));
+});
+
+// Updating a scheduled interview
+app.patch('/updateInterview', (request, response) => {
+    const { id, email1, email2, startTime, endTime } = request.body;
+    const db = dbService.getDbServiceInstance();
+    const result = db.updateInterviewById(id, email1, email2, startTime, endTime);
+    
+    result
+    .then(data => response.json({data : data}))
+    .catch(err => console.log(err));
+});
+
 app.listen(5000, () => console.log('portal is running'));

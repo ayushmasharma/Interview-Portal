@@ -51,6 +51,74 @@ function loadDropdownList(data) {
     drop2.innerHTML = dropdownHtml;
 }
 
+// Update and edit operations
+document.querySelector('table tbody').addEventListener('click', function(event) {
+    if (event.target.className === "delete-row-btn") {
+        deleteInterviewById(event.target.dataset.id);
+    }
+    if (event.target.className === "edit-row-btn") {
+        handleEditInterview(event.target.dataset.id);
+    }
+});
+
+function deleteInterviewById(id) {
+    fetch('http://localhost:5000/deleteInterview/' + id, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function handleEditInterview(id) {
+    const updateSection = document.querySelector('#update-row');
+    updateSection.hidden = false;
+    document.querySelector('#start-time-updated').dataset.id = id;
+}
+
+const updateBtn = document.querySelector('#update-row-btn');
+
+updateBtn.onclick = function() {
+    const updateDate1 = document.querySelector('#start-time-updated');
+    const updateDate2 = document.querySelector('#end-time-updated');
+    const data = updateDate1.dataset.id.split(',');
+    if(updateDate1.value === "" || updateDate2.value === "") {
+        alert("Select Date and Time");
+        return;
+    }
+
+    fetch('http://localhost:5000/updateInterview', {
+        method: 'PATCH',
+        headers: {
+            'Content-type' : 'application/json'
+        },
+        body: JSON.stringify({
+            id: data[0],
+            email1: data[1],
+            email2: data[2],
+            startTime: updateDate1.value,
+            endTime: updateDate2.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => updateVerdict(data['data']));
+}
+
+function updateVerdict(data) {
+    if (data.id===-1) {
+        alert("Interviewer is not available at that time");
+    } 
+    else if (data.id===-2) {
+        alert("Interviewee is not available at that time");
+    }
+    else {
+        location.reload();
+    }
+}
+
 const submitButton = document.querySelector('#submit-btn');
 
 submitButton.onclick = function () {

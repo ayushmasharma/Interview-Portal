@@ -79,6 +79,7 @@ class DbService {
         }
     }
 
+
     //Check for availability of the participant
     async checkAvailability(email, start, end, id = -1) {
         try {
@@ -138,6 +139,78 @@ class DbService {
             }
         } catch (error) {
             console.log(error);
+        }
+    }
+
+    // Deleting a scheduled interview
+    async deleteInterviewById(id) {
+        try {
+            id = parseInt(id, 10);
+            const data = await new Promise((resolve,reject) => {
+                const query = "SELECT * FROM interviews WHERE id = ?";
+                connection.query(query, [id] , (err, results) => {
+                    if (err) reject(new Error(err.message));
+                    resolve(results);
+                })
+            })
+            const email1 = data[0].email1;
+            const email2 = data[0].email2;
+            const startTime = new Date(data[0].startTime).toLocaleString();
+            const endTime = new Date(data[0].endTime).toLocaleString();
+            
+            const response = await new Promise((resolve, reject) => {
+                const query = "DELETE FROM interviews WHERE id = ?";
+    
+                connection.query(query, [id] , (err, result) => {
+                    if (err) reject(new Error(err.message));
+                    resolve(result.affectedRows);
+                })
+            });
+        } catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
+
+     // Updating a scheduled Interview
+     async updateInterviewById(id, email1, email2, startTime, endTime) {
+        try {
+            id = parseInt(id, 10);
+            const start = convertDateTime(startTime);
+            const end = convertDateTime(endTime); 
+            const check1 = await this.checkAvailability(email1, start, end, id);
+            const check2 = await this.checkAvailability(email2, start, end, id);
+            if(check1 > 0) {
+                console.log("Interviewer Not available at that time");
+                return {
+                    id: -1
+                };
+            }
+            else if(check2 > 0) {
+                console.log("Interviewee Not available at that time");
+                return {
+                    id: -2
+                };
+            }
+            else {
+                const response = await new Promise((resolve, reject) => {
+                    const query = "UPDATE interviews SET startTime = ?, endTime = ? WHERE id = ?";
+        
+                    connection.query(query, [start, end, id] , (err, result) => {
+                        if (err) reject(new Error(err.message));
+                        resolve(result.affectedRows);
+                    })
+                });
+                const ms = mailService.getMailServiceInstance();
+                ms.update(email1, email2, startTime, endTime);
+                return {
+                    id: 1
+                };
+            }
+            
+        } catch (error) {
+            console.log(error);
+            return false;
         }
     }
 }
