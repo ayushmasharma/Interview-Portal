@@ -9,6 +9,21 @@ document.addEventListener('DOMContentLoaded', function () {
     
 });
 
+function loadDropdownList(data) {
+    const drop1 = document.querySelector('#interviewer-name');
+    const drop2 = document.querySelector('#interviewee-name');
+
+    let dropdownHtml = "";
+
+    data.forEach(function ({name, email_id}) {
+        const dataToStore = name + '(' + email_id + ')';
+        dropdownHtml += `<option value="${dataToStore}">${dataToStore}</option>`
+    });
+
+    drop1.innerHTML = dropdownHtml;
+    drop2.innerHTML = dropdownHtml;
+}
+
 function loadInterviewTable(data) {
     const table = document.querySelector('table tbody');
 
@@ -34,21 +49,6 @@ function loadInterviewTable(data) {
     });
 
     table.innerHTML = tableHtml;
-}
-
-function loadDropdownList(data) {
-    const drop1 = document.querySelector('#interviewer-name');
-    const drop2 = document.querySelector('#interviewee-name');
-
-    let dropdownHtml = "";
-
-    data.forEach(function ({name, email_id}) {
-        const dataToStore = name + '(' + email_id + ')';
-        dropdownHtml += `<option value="${dataToStore}">${dataToStore}</option>`
-    });
-
-    drop1.innerHTML = dropdownHtml;
-    drop2.innerHTML = dropdownHtml;
 }
 
 // Update and edit operations

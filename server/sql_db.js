@@ -1,11 +1,12 @@
 const mysql = require('mysql');
+const mailService = require('./mailService');
 let instance = null;
 
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'InterviewBit',
+    database: 'interviewbit',
     port: '3306'
 });
 
@@ -13,10 +14,9 @@ connection.connect((err) => {
     if (err) {
         console.log(err.message);
     }
-    console.log('db ' + connection.state);
+    console.log('interviewbit ' + connection.state);
 });
 
-// converting the date and time to required form
 convertDateTime = (datetime) => {
     datetime = datetime.split(' ');
     date = datetime[0].split('/');
@@ -45,7 +45,7 @@ class DbService {
         return instance ? instance : new DbService();
     }
 
-    // dropdown list with users information from the database
+    // dropdown list of the users available in the database
     async getAllData() {
         try {
             const response = await new Promise((resolve, reject) => {
@@ -62,7 +62,7 @@ class DbService {
         }
     }
     
-    // scheduled interviews table load
+    // table for scheduled interviews load
     async getAllInterviewData() {
         try {
             const response = await new Promise((resolve, reject) => {
@@ -79,8 +79,40 @@ class DbService {
         }
     }
 
+    // Deleting a scheduled interview
+    async deleteInterviewById(id) {
+        try {
+            id = parseInt(id, 10);
+            const data = await new Promise((resolve,reject) => {
+                const query = "SELECT * FROM interviews WHERE id = ?";
+                connection.query(query, [id] , (err, results) => {
+                    if (err) reject(new Error(err.message));
+                    resolve(results);
+                })
+            })
+            const email1 = data[0].email1;
+            const email2 = data[0].email2;
+            const startTime = new Date(data[0].startTime).toLocaleString();
+            const endTime = new Date(data[0].endTime).toLocaleString();
+            
+            const response = await new Promise((resolve, reject) => {
+                const query = "DELETE FROM interviews WHERE id = ?";
+    
+                connection.query(query, [id] , (err, result) => {
+                    if (err) reject(new Error(err.message));
+                    resolve(result.affectedRows);
+                })
+            });
+            const ms = mailService.getMailServiceInstance();
+            ms.delete(email1, email2, startTime, endTime);
+            return response === 1 ? true : false;
+        } catch (error) {
+            console.log(error);
+            return false;
+        }
+    }
 
-    //Check for availability of the participant
+    //Check for the availability of the participants
     async checkAvailability(email, start, end, id = -1) {
         try {
             const check1 = await new Promise((resolve, reject) => {
@@ -136,58 +168,38 @@ class DbService {
                         resolve(result.insertId);
                     })
                 });
+                const ms = mailService.getMailServiceInstance();
+                ms.schedule(email1, email2, startTime, endTime);
+                return {
+                    id : insertId,
+                    email1: email1,
+                    email2 : email2,
+                    startTime : startTime,
+                    endTime : endTime
+                };
             }
         } catch (error) {
             console.log(error);
         }
     }
 
-    // Deleting a scheduled interview
-    async deleteInterviewById(id) {
-        try {
-            id = parseInt(id, 10);
-            const data = await new Promise((resolve,reject) => {
-                const query = "SELECT * FROM interviews WHERE id = ?";
-                connection.query(query, [id] , (err, results) => {
-                    if (err) reject(new Error(err.message));
-                    resolve(results);
-                })
-            })
-            const email1 = data[0].email1;
-            const email2 = data[0].email2;
-            const startTime = new Date(data[0].startTime).toLocaleString();
-            const endTime = new Date(data[0].endTime).toLocaleString();
-            
-            const response = await new Promise((resolve, reject) => {
-                const query = "DELETE FROM interviews WHERE id = ?";
-    
-                connection.query(query, [id] , (err, result) => {
-                    if (err) reject(new Error(err.message));
-                    resolve(result.affectedRows);
-                })
-            });
-        } catch (error) {
-            console.log(error);
-            return false;
-        }
-    }
-
-     // Updating a scheduled Interview
-     async updateInterviewById(id, email1, email2, startTime, endTime) {
+    // Updating a scheduled Interview
+    async updateInterviewById(id, email1, email2, startTime, endTime) {
         try {
             id = parseInt(id, 10);
             const start = convertDateTime(startTime);
             const end = convertDateTime(endTime); 
             const check1 = await this.checkAvailability(email1, start, end, id);
             const check2 = await this.checkAvailability(email2, start, end, id);
+
             if(check1 > 0) {
-                console.log("Interviewer Not available at that time");
+                console.log("Interviewer is not available at that time");
                 return {
                     id: -1
                 };
             }
             else if(check2 > 0) {
-                console.log("Interviewee Not available at that time");
+                console.log("Interviewee is not available at that time");
                 return {
                     id: -2
                 };
@@ -207,12 +219,12 @@ class DbService {
                     id: 1
                 };
             }
-            
         } catch (error) {
             console.log(error);
             return false;
         }
     }
+    
 }
 
 module.exports = DbService;
