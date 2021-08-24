@@ -2,8 +2,6 @@
 
 This is a portal where admins can create interviews by selecting participants, interview start time and end time.
 
-Deployment Link : https://interview-portal-2407.herokuapp.com/
-
 ## Functionalities
 
 1. An interview creation page where the admin can create an interview by selecting participants, start time and end time. Backend throws error with proper error message if: 
